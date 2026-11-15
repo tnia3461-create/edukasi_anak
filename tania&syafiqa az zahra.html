@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Petualangan Belajar: Mengenal Hewan & Buah</title>
+    <!-- Menggunakan Tailwind CSS & Google Fonts agar tampilan ceria & responsif -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Fredoka', sans-serif;
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            min-height: 100vh;
+            user-select: none;
+        }
+        .card-bounce {
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+        }
+        .card-bounce:hover {
+            transform: translateY(-8px) scale(1.03);
+        }
+        .card-bounce:active {
+            transform: scale(0.95);
+        }
+        @keyframes wiggle {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-6deg); }
+            75% { transform: rotate(6deg); }
+        }
+        .animate-wiggle {
+            animation: wiggle 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 flex flex-col items-center">
+
+    <!-- Header Aplikasi -->
+    <header class="text-center mb-6 max-w-2xl">
+        <h1 class="text-3xl md:text-5xl font-bold text-indigo-800 drop-shadow-sm mb-2">
+            🌟 Petualangan Belajar 🌟
+        </h1>
+        <p class="text-indigo-700 text-base md:text-lg">
+            Klik gambarnya untuk mendengar nama dan penjelasannya!
+        </p>
+    </header>
+
+    <!-- Kontrol Navigasi & Mode -->
+    <div class="flex flex-wrap justify-center gap-3 mb-8 bg-white/80 backdrop-blur-md p-3 rounded-3xl shadow-lg">
+        <button onclick="setCategory('hewan')" id="btn-hewan" 
+            class="px-5 py-2.5 rounded-2xl font-bold text-white bg-orange-500 shadow-md transition">
+            🦁 Mengenal Hewan
+        </button>
+        <button onclick="setCategory('buah')" id="btn-buah" 
+            class="px-5 py-2.5 rounded-2xl font-bold text-gray-700 bg-gray-200 hover:bg-gray-300 transition">
+            🍎 Mengenal Buah
+        </button>
+        <button onclick="toggleQuizMode()" id="btn-quiz" 
+            class="px-5 py-2.5 rounded-2xl font-bold text-white bg-purple-600 hover:bg-purple-700 shadow-md transition">
+            🎯 Mode Kuis Tebak Gambar
+        </button>
+    </div>
+
+    <!-- Banner Kuis (Hanya muncul saat Mode Kuis aktif) -->
+    <div id="quiz-banner" class="hidden w-full max-w-2xl bg-yellow-300 border-4 border-yellow-500 rounded-3xl p-5 mb-8 text-center shadow-xl">
+        <div class="flex justify-between items-center mb-2">
+            <span class="bg-yellow-600 text-white px-4 py-1 rounded-full text-sm font-bold">
+                Skor: <span id="score">0</span>
+            </span>
+            <button onclick="repeatQuizQuestion()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-1 rounded-full text-sm font-bold shadow">
+                🔊 Ulangi Pertanyaan
+            </button>
+        </div>
+        <h2 id="quiz-question" class="text-2xl md:text-3xl font-bold text-yellow-900 mt-2">
+            Cari gambar: ...
+        </h2>
+        <p id="quiz-feedback" class="text-lg font-semibold mt-2 h-7 text-indigo-800"></p>
+    </div>
+
+    <!-- Grid Kartu Pembelajaran -->
+    <main id="cards-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 md:gap-6 w-full max-w-5xl">
+        <!-- Kartu akan di-generate otomatis oleh JavaScript -->
+    </main>
+
+    <!-- Footer -->
+    <footer class="mt-12 text-center text-indigo-900/70 text-sm">
+        Dibuat untuk belajar interaktif • Menggunakan Web Speech API (Suara Otomatis)
+    </footer>
+
+    <script>
+        // Database Materi Edukasi (Menggunakan Emoji Besar + Ilustrasi Warna-Warni agar ringan & bebas error link gambar)
+        const learningData = {
+            hewan: [
+                { id: 'kucing', name: 'Kucing', emoji: '🐱', color: 'bg-orange-100 border-orange-300', desc: 'Kucing adalah hewan berbulu lembut yang suka mengeong. Meong!' },
+                { id: 'gajah', name: 'Gajah', emoji: '🐘', color: 'bg-blue-100 border-blue-300', desc: 'Gajah adalah hewan darat yang sangat besar dan memiliki belalai panjang.' },
+                { id: 'singa', name: 'Singa', emoji: '🦁', color: 'bg-yellow-100 border-yellow-300', desc: 'Singa dijuluki raja hutan dan memiliki suara auman yang keras.' },
+                { id: 'kelinci', name: 'Kelinci', emoji: '🐰', color: 'bg-pink-100 border-pink-300', desc: 'Kelinci memiliki telinga panjang dan suka melompat serta makan wortel.' },
+                { id: 'sapi', name: 'Sapi', emoji: '🐮', color: 'bg-emerald-100 border-emerald-300', desc: 'Sapi makan rumput dan menghasilkan susu yang sehat untuk kita minum.' },
+                { id: 'bebek', name: 'Bebek', emoji: '🦆', color: 'bg-amber-100 border-amber-300', desc: 'Bebek pandai berenang di air dan bersuara kwek kwek kwek.' },
+                { id: 'monyet', name: 'Monyet', emoji: '🐵', color: 'bg-stone-200 border-stone-400', desc: 'Monyet pandai memanjat pohon dan sangat suka makan buah pisang.' },
+                { id: 'kura', name: 'Kura-kura', emoji: '🐢', color: 'bg-teal-100 border-teal-300', desc: 'Kura-kura berjalan pelan dan membawa tempurung keras di punggungnya.' }
+            ],
+            buah: [
+                { id: 'apel', name: 'Apel', emoji: '🍎', color: 'bg-red-100 border-red-300', desc: 'Buah apel berwarna merah, rasanya manis dan renyah saat digigit.' },
+                { id: 'pisang', name: 'Pisang', emoji: '🍌', color: 'bg-yellow-100 border-yellow-300', desc: 'Pisang berwarna kuning dan sangat kaya akan energi.' },
+                { id: 'jeruk', name: 'Jeruk', emoji: '🍊', color: 'bg-orange-100 border-orange-300', desc: 'Jeruk memiliki rasa manis segar dan banyak mengandung vitamin C.' },
+                { id: 'semangka', name: 'Semangka', emoji: '🍉', color: 'bg-green-100 border-green-300', desc: 'Semangka berukuran besar, kulitnya hijau, dan dagingnya merah berair.' },
+                { id: 'anggur', name: 'Anggur', emoji: '🍇', color: 'bg-purple-100 border-purple-300', desc: 'Buah anggur berbentuk bulat kecil-kecil dan tumbuh bergerombol.' },
+                { id: 'stroberi', name: 'Stroberi', emoji: '🍓', color: 'bg-rose-100 border-rose-300', desc: 'Stroberi berwarna merah cerah dengan bintik-bintik kecil di kulitnya.' },
+                { id: 'nanas', name: 'Nanas', emoji: '🍍', color: 'bg-amber-100 border-amber-300', desc: 'Nanas memiliki mahkota daun di atasnya dan rasanya manis asam.' },
+                { id: 'alpukat', name: 'Alpukat', emoji: '🥑', color: 'bg-lime-100 border-lime-300', desc: 'Alpukat dagingnya lembut berwarna hijau dan enak dibuat jus.' }
+            ]
+        };
+
+        let currentCategory = 'hewan';
+        let isQuizMode = false;
+        let currentQuizTarget = null;
+        let score = 0;
+
+        // Fungsi Suara (Text-to-Speech Bahasa Indonesia)
+        function speak(text) {
+            // Hentikan suara sebelumnya jika masih berbicara
+            window.speechSynthesis.cancel();
+            
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'id-ID'; // Bahasa Indonesia
+            utterance.rate = 0.95;    // Kecepatan bicara sedikit santai agar jelas untuk anak
+            utterance.pitch = 1.15;   // Nada sedikit ceria
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // Efek Suara Sederhana Menggunakan Web Audio API (Tanpa perlu file mp3 eksternal)
+        function playTone(type) {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+
+            if (type === 'win') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+                osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1); // E5
+                osc.frequency.setValueAtTime(783.99, ctx.currentTime + 0.2); // G5
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.5);
+            } else if (type === 'wrong') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(200, ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(150, ctx.currentTime + 0.3);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.3);
+            }
+        }
+
+        // Mengganti Kategori
+        function setCategory(category) {
+            currentCategory = category;
+            
+            // Update tampilan tombol aktif
+            const btnHewan = document.getElementById('btn-hewan');
+            const btnBuah = document.getElementById('btn-buah');
+            
+            if (category === 'hewan') {
+                btnHewan.className = "px-5 py-2.5 rounded-2xl font-bold text-white bg-orange-500 shadow-md transition";
+                btnBuah.className = "px-5 py-2.5 rounded-2xl font-bold text-gray-700 bg-gray-200 hover:bg-gray-300 transition";
+            } else {
+                btnBuah.className = "px-5 py-2.5 rounded-2xl font-bold text-white bg-green-600 shadow-md transition";
+                btnHewan.className = "px-5 py-2.5 rounded-2xl font-bold text-gray-700 bg-gray-200 hover:bg-gray-300 transition";
+            }
+
+            renderCards();
+            if (isQuizMode) {
+                nextQuizQuestion();
+            } else {
+                speak(`Ayo belajar mengenal ${category}`);
+            }
+        }
+
+        // Menampilkan Kartu ke Layar
+        function renderCards() {
+            const container = document.getElementById('cards-container');
+            container.innerHTML = '';
+            const items = learningData[currentCategory];
+
+            items.forEach(item => {
+                const card = document.createElement('div');
+                card.id = `card-${item.id}`;
+                card.className = `card-bounce cursor-pointer ${item.color} border-4 rounded-3xl p-6 flex flex-col items-center justify-center shadow-lg text-center relative overflow-hidden`;
+                
+                card.innerHTML = `
+                    <div class="text-7xl md:text-8xl mb-4 drop-shadow-md transition-transform duration-300" id="emoji-${item.id}">
+                        ${item.emoji}
+                    </div>
+                    <h3 class="text-xl md:text-2xl font-bold text-gray-800">
+                        ${isQuizMode ? '???' : item.name}
+                    </h3>
+                    ${!isQuizMode ? '<span class="mt-2 text-xs font-semibold bg-white/70 px-3 py-1 rounded-full text-gray-600">🔊 Klik Suara</span>' : ''}
+                `;
+
+                card.onclick = () => handleCardClick(item);
+                container.appendChild(card);
+            });
+        }
+
+        // Menangani Klik pada Kartu
+        function handleCardClick(item) {
+            const cardEl = document.getElementById(`card-${item.id}`);
+            cardEl.classList.remove('animate-wiggle');
+            void cardEl.offsetWidth; // Trigger reflow agar animasi bisa diulang
+            cardEl.classList.add('animate-wiggle');
+
+            if (!isQuizMode) {
+                // Mode Belajar Biasa
+                speak(`${item.name}. ${item.desc}`);
+            } else {
+                // Mode Kuis Tebak Gambar
+                if (item.id === currentQuizTarget.id) {
+                    playTone('win');
+                    score += 10;
+                    document.getElementById('score').innerText = score;
+                    document.getElementById('quiz-feedback').innerText = `🎉 Hebat! Benar sekali, itu ${item.name}!`;
+                    speak(`Hebat! Benar sekali, itu adalah ${item.name}.`);
+                    
+                    setTimeout(() => {
+                        nextQuizQuestion();
+                    }, 2200);
+                } else {
+                    playTone('wrong');
+                    document.getElementById('quiz-feedback').innerText = `❌ Ups, itu ${item.name}. Coba lagi ya!`;
+                    speak(`Ups, bukan. Itu gambar ${item.name}. Ayo cari ${currentQuizTarget.name}.`);
+                }
+            }
+        }
+
+        // Mengaktifkan / Mematikan Mode Kuis
+        function toggleQuizMode() {
+            isQuizMode = !isQuizMode;
+            const quizBanner = document.getElementById('quiz-banner');
+            const btnQuiz = document.getElementById('btn-quiz');
+
+            if (isQuizMode) {
+                score = 0;
+                document.getElementById('score').innerText = score;
+                quizBanner.classList.remove('hidden');
+                btnQuiz.innerText = '📚 Kembali ke Mode Belajar';
+                btnQuiz.className = 'px-5 py-2.5 rounded-2xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md transition';
+                renderCards();
+                nextQuizQuestion();
+            } else {
+                quizBanner.classList.add('hidden');
+                btnQuiz.innerText = '🎯 Mode Kuis Tebak Gambar';
+                btnQuiz.className = 'px-5 py-2.5 rounded-2xl font-bold text-white bg-purple-600 hover:bg-purple-700 shadow-md transition';
+                window.speechSynthesis.cancel();
+                renderCards();
+            }
+        }
+
+        // Membuat Pertanyaan Kuis Acak
+        function nextQuizQuestion() {
+            const items = learningData[currentCategory];
+            const randomIndex = Math.floor(Math.random() * items.length);
+            currentQuizTarget = items[randomIndex];
+
+            document.getElementById('quiz-question').innerText = `Dimanakah gambar: ${currentQuizTarget.name}?`;
+            document.getElementById('quiz-feedback').innerText = '';
+            speak(`Ayo cari, dimanakah gambar ${currentQuizTarget.name}?`);
+        }
+
+        function repeatQuizQuestion() {
+            if (currentQuizTarget) {
+                speak(`Dimanakah gambar ${currentQuizTarget.name}?`);
+            }
+        }
+
+        // Inisialisasi awal saat halaman dibuka
+        renderCards();
+    </script>
+</body>
+</html>
